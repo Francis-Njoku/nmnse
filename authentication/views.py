@@ -5,14 +5,12 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework import status
-from investor.models import InitialInterests
-from investor.serializers import RegistrationInitialInterestSerializer, InitialInterestSerializer
 #from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 #from core.auth.serializers import LoginSerializer, RegistrationSerializer
 from django.core.mail import send_mail as sender
 from rest_framework import filters, generics, status, views, permissions
-from .serializers import ProfileInvestorSerializer, ProfileIssuerSerializer, UserInSerializer, ApproveUserSerializer, VerifiedUserSerializer, UserInterestSerializer, SigninSerializer, ReferralSerializer, InviteSerializer, RegisterSerializer, SetNewPasswordSerializer, ResetPasswordEmailRequestSerializer, EmailVerificationSerializer, LoginSerializer, LogoutSerializer, UserSerializer
+from .serializers import ProfileInvestorSerializer, ProfileIssuerSerializer, UserSerializer, ApproveUserSerializer, VerifiedUserSerializer, SigninSerializer, ReferralSerializer, InviteSerializer, RegisterSerializer, SetNewPasswordSerializer, ResetPasswordEmailRequestSerializer, EmailVerificationSerializer, LoginSerializer, LogoutSerializer, UserSerializer
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
@@ -72,25 +70,9 @@ def render_to_pdf(template_src, context_dict={}):
     return None
 '''
 
-class UserInvestorDetailAPIView(APIView):
-    def get(self, request, format=None):
-        try:
-            user = request.user
-            user = UserInSerializer(user)
-
-            return Response(
-                {'user': user.data},
-                status=status.HTTP_200_OK
-            )
-
-        except:
-            return Response(
-                {'error': 'Something went wrong when trying to load user'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
         
 class UserListAPIView(ListAPIView):
-    serializer_class = UserInterestSerializer
+    serializer_class = UserSerializer
     queryset = User.objects.all().order_by('-created_at')
     permission_classes = (IsAuthenticated, IsAdminUser,)
     filter_backends = [DjangoFilterBackend,
@@ -101,24 +83,23 @@ class UserListAPIView(ListAPIView):
                         ]
     search_fields = ['firstname', 'lastname',
                      'phone', 'email', 'referral_code']
-    ordering_fields = ['firstname', 'lastname', 'created_at', 'details__interest__interest',
-                       'details__risk__risk', 'details__period__period', 'details__investmentsize__investment_size']
+
 
     def get_queryset(self):
         return self.queryset.all()
 
 
 class UserDetailAPIView(RetrieveUpdateDestroyAPIView):
-    serializer_class = UserInterestSerializer
+    serializer_class = UserSerializer
     queryset = User.objects.all()
     permission_classes = (IsAuthenticated,)
     lookup_field = "id"
 
     def get_queryset(self):
-        return self.queryset.filter(owner=self.request.user)
+        return self.queryset.filter(id=self.request.user)
 
 class UserInvestorAPIView(RetrieveUpdateDestroyAPIView):
-    serializer_class = UserInterestSerializer
+    serializer_class = UserSerializer
     queryset = User.objects.all()
     permission_classes = (IsAuthenticated,)
     lookup_field = "id"
@@ -212,7 +193,6 @@ class CustomRedirect(HttpResponsePermanentRedirect):
 class RegisterView(generics.GenericAPIView):
 
     serializer_class = RegisterSerializer
-    ini_serializer = RegistrationInitialInterestSerializer
     renderer_classes = (UserRenderer,)
 
     def post(self, request):
@@ -231,18 +211,8 @@ class RegisterView(generics.GenericAPIView):
         serializer = self.serializer_class(data=user)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        user_data = serializer.data
-    
-        inidata = {'owner': user_data['id'],
-                   'risk': 1,
-                   'period': 1,
-                   'interest': 1,
-                   'investmentsize': 1, }
-        ini_serial = self.ini_serializer(data=inidata)
-        ini_serial.is_valid(raise_exception=True)
-        ini_serial.save()
          
-        user = User.objects.get(email=user_data['email'])
+        user = User.objects.get(email=request.data.get('email'))
         token = RefreshToken.for_user(user).access_token
         current_site = get_current_site(request).domain
         relativeLink = reverse('email-verify')
@@ -256,58 +226,11 @@ class RegisterView(generics.GenericAPIView):
         sender(data['email_subject'], data['email_body'],
                'no-reply@yieldroom.ng', [data['to_email']])
 
-        return Response(user_data, status=status.HTTP_201_CREATED)
-
-
-class InitialInvestmentView(generics.GenericAPIView):
-
-    serializer_class = RegisterSerializer
-    ini_serializer = RegistrationInitialInterestSerializer
-    permission_classes = (IsAuthenticated,)
-    #renderer_classes = (UserRenderer,)
-
-    def post(self, request):        
-        inidata = {'owner': self.request.user.id,
-                   'risk': request.data.get('risk'),
-                   'period': request.data.get('period'),
-                   'interest': request.data.get('interest'),
-                   'investmentsize': request.data.get('investmentsize'), }
-        ini_serial = self.ini_serializer(data=inidata)
-        ini_serial.is_valid(raise_exception=True)
-        ini_serial.save()
-        ini_data = ini_serial.data
-        return Response(ini_data, status=status.HTTP_201_CREATED)
-
-class UpdateInitialInvestmentView(generics.GenericAPIView):
-
-    serializer_class = RegisterSerializer
-    ini_serializer = RegistrationInitialInterestSerializer
-    permission_classes = (IsAuthenticated,)
-    #renderer_classes = (UserRenderer,)
-
-    def get_object(self, pk):
-        try:
-            return InitialInterests.objects.get(id=pk)
-        except InitialInterests.DoesNotExist:
-            raise Http404
-
-    def put(self, request, id, format=None):   
-        initialInterestId = self.get_object(id)     
-        inidata = {'owner': self.request.user.id,
-                   'risk': request.data.get('risk'),
-                   'period': request.data.get('period'),
-                   'interest': request.data.get('interest'),
-                   'investmentsize': request.data.get('investmentsize'), }
-        ini_serial = self.ini_serializer(initialInterestId, data=inidata)
-        ini_serial.is_valid(raise_exception=True)
-        ini_serial.save()
-        ini_data = ini_serial.data
-        return Response(ini_data, status=status.HTTP_201_CREATED)
+        return Response(user, status=status.HTTP_201_CREATED)
 
 
 class RegisterIssuerView(generics.GenericAPIView):
     serializer_class = RegisterSerializer
-    ini_serializer = RegistrationInitialInterestSerializer
     profile_serializer = ProfileIssuerSerializer
     renderer_classes = (UserRenderer,)
     parser_classes = [MultiPartParser, FormParser]
@@ -329,14 +252,6 @@ class RegisterIssuerView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         user_data = serializer.data
-        inidata = {'user': user_data['id'],
-                   'nin': request.data.get('nin'),
-                   'dob': request.data.get('dob'),
-                   'identity': request.data.get('identity'),
-                   'is_investor': True, }
-        ini_serial = self.profile_serializer(data=inidata)
-        ini_serial.is_valid(raise_exception=True)
-        ini_serial.save()
         user = User.objects.get(email=user_data['email'])
         token = RefreshToken.for_user(user).access_token
         current_site = get_current_site(request).domain
@@ -352,14 +267,13 @@ class RegisterIssuerView(generics.GenericAPIView):
                'no-reply@yieldroom.ng', [data['to_email']])
 
         Util.send_email(data)
-        return Response(user_data, status=status.HTTP_201_CREATED)
+        return Response(user, status=status.HTTP_201_CREATED)
 
 
 class RegisterReferralView(generics.GenericAPIView):
 
     serializer_class = RegisterSerializer
     referal_serializer = ReferralSerializer
-    ini_serializer = RegistrationInitialInterestSerializer
     renderer_classes = (UserRenderer,)
 
     def post(self, request):
@@ -391,20 +305,6 @@ class RegisterReferralView(generics.GenericAPIView):
                     serializer.is_valid(raise_exception=True)
                     serializer.save()
                     user_data = serializer.data
-                    refdata = {'owner': user_data['id'],
-                               'referred': check_user.id,
-                               'status': False, }
-                    re_serializer = self.referal_serializer(data=refdata)
-                    re_serializer.is_valid(raise_exception=True)
-                    re_serializer.save()
-                    inidata = {'owner': user_data['id'],
-                               'risk': request.data.get('risk'),
-                               'period': request.data.get('period'),
-                               'interest': request.data.get('interest'),
-                               'investmentsize': request.data.get('investmentsize'), }
-                    ini_serial = self.ini_serializer(data=inidata)
-                    ini_serial.is_valid(raise_exception=True)
-                    ini_serial.save()
                     user = User.objects.get(email=user_data['email'])
                     token = RefreshToken.for_user(user).access_token
                     current_site = get_current_site(request).domain

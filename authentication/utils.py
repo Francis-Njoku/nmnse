@@ -4,7 +4,6 @@ import random
 
 import threading
 from .models import User
-from investment.models import Investors
 
 
 class EmailThread(threading.Thread):
@@ -49,28 +48,6 @@ def transaction_generator(size=13, chars=string.ascii_lowercase + string.digits)
         return the_id
 
 # Generate transaction ID
-
-
-def serial_investor(size=13, chars=string.ascii_lowercase + string.digits):
-    the_id = "".join(random.choice(chars) for x in range(size))
-    # Check if ID exist in database
-    try:
-        order_gen = Investors.objects.get(serialkey=the_id)
-        investor_slug
-    except Investors.DoesNotExist:
-        return the_id
-
-# Generate investor ID
-
-
-def investor_slug(size=6, chars=string.ascii_lowercase + string.digits):
-    the_id = "".join(random.choice(chars) for x in range(size))
-    # Check if ID exist in database
-    try:
-        order_gen = Investors.objects.get(slug=the_id)
-        investor_slug
-    except Investors.DoesNotExist:
-        return the_id
 
 # Generate username  ID
 
