@@ -5,8 +5,11 @@ from rest_framework.decorators import api_view
 from .models import Company, FinancialData
 from .serializers import CompanySerializer
 from rest_framework.response import Response
+from rest_framework.decorators import permission_classes
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminUser])  # Only admins can upload and update
 def upload_csv(request):
     # Ensure the request has a file
     if 'file' not in request.FILES:
