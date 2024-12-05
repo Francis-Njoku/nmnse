@@ -37,6 +37,13 @@ def upload_csv(request):
             year_of_incorporation = int(row['Year of incorporation'])
             remark = row.get('remark', '')
 
+            # Ensure that 'Year of incorporation' is valid and not empty
+            year_of_incorporation_str = row.get('Year of incorporation', '').strip()  # Use .get() to avoid KeyError
+            if year_of_incorporation_str.isdigit():
+                year_of_incorporation = int(year_of_incorporation_str)
+            else:
+                year_of_incorporation = None  # Or any default value, or handle the error as needed
+
             # Create or update the company
             company, created = Company.objects.get_or_create(
                 name=company_name,
@@ -57,13 +64,13 @@ def upload_csv(request):
 
             # Loop through each year and build financial data
             for year in year_columns:
-                financial_data['revenue'][year] = row.get(f'"revenue" {year}', None)
-                financial_data['pbt'][year] = row.get(f'"pbt" {year}', None)
-                financial_data['pat'][year] = row.get(f'"pat" {year}', None)
-                financial_data['total_assets'][year] = row.get(f'"total assets" {year}', None)
-                financial_data['cash_equivalent'][year] = row.get(f'"cash equivalent" {year}', None)
-                financial_data['equity'][year] = row.get(f'"equity" {year}', None)
-                financial_data['fiscal_year_end'][year] = row.get(f'"fiscal year ended" {year}', None)
+                financial_data['revenue'][year] = row.get(f'"revenue" {year}', None) or 0
+                financial_data['pbt'][year] = row.get(f'"pbt" {year}', None) or 0
+                financial_data['pat'][year] = row.get(f'"pat" {year}', None) or 0
+                financial_data['total_assets'][year] = row.get(f'"total assets" {year}', None) or 0
+                financial_data['cash_equivalent'][year] = row.get(f'"cash equivalent" {year}', None) or 0
+                financial_data['equity'][year] = row.get(f'"equity" {year}', None) or 0
+                financial_data['fiscal_year_end'][year] = row.get(f'"fiscal year ended" {year}', None) or 0
 
             # Save financial data related to the company
             FinancialData.objects.create(
