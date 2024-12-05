@@ -34,15 +34,15 @@ def upload_csv(request):
             company_name = row['Company']
             sectors = row['Sectors']
             sub_sector = row.get('Sub-sector', '')
-            year_of_incorporation = int(row['Year of incorporation'])
-            remark = row.get('remark', '')
+            year_of_incorporation_str = row.get('Year of incorporation', '').strip()
 
-            # Ensure that 'Year of incorporation' is valid and not empty
-            year_of_incorporation_str = row.get('Year of incorporation', '').strip()  # Use .get() to avoid KeyError
+            # Validate 'Year of incorporation' to ensure it's an integer
             if year_of_incorporation_str.isdigit():
                 year_of_incorporation = int(year_of_incorporation_str)
             else:
-                year_of_incorporation = None  # Or any default value, or handle the error as needed
+                year_of_incorporation = 0  # Set to a default year or handle this case as needed
+
+            remark = row.get('remark', '')
 
             # Create or update the company
             company, created = Company.objects.get_or_create(
@@ -64,13 +64,13 @@ def upload_csv(request):
 
             # Loop through each year and build financial data
             for year in year_columns:
-                financial_data['revenue'][year] = row.get(f'"revenue" {year}', None) or 0
-                financial_data['pbt'][year] = row.get(f'"pbt" {year}', None) or 0
-                financial_data['pat'][year] = row.get(f'"pat" {year}', None) or 0
-                financial_data['total_assets'][year] = row.get(f'"total assets" {year}', None) or 0
-                financial_data['cash_equivalent'][year] = row.get(f'"cash equivalent" {year}', None) or 0
-                financial_data['equity'][year] = row.get(f'"equity" {year}', None) or 0
-                financial_data['fiscal_year_end'][year] = row.get(f'"fiscal year ended" {year}', None) or 0
+                # Validate financial data fields
+                for field in ['revenue', 'pbt', 'pat', 'total_assets', 'cash_equivalent', 'equity', 'fiscal_year_end']:
+                    field_value = row.get(f'"{field}" {year}', '').strip()  # Ensure it's not empty
+                    if field_value.isdigit():
+                        financial_data[field][year] = int(field_value)
+                    else:
+                        financial_data[field][year] = None  # Or default value like 0, depending on requirements
 
             # Save financial data related to the company
             FinancialData.objects.create(
@@ -88,6 +88,7 @@ def upload_csv(request):
     
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
 
 @api_view(['GET'])
 def company_detail(request, company_id):

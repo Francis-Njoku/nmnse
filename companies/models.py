@@ -19,7 +19,7 @@ class Company(models.Model):
     upload_date = models.DateField(null=True)
     status = models.CharField(choices=STATUS_OPTIONS, max_length=255, default="not started")
     uploaded_by = models.ForeignKey(to=User, on_delete=models.CASCADE, null=True, related_name='uploaded_by')
-    year_of_incorporation = models.IntegerField()
+    year_of_incorporation = models.IntegerField(null=True)
     remark = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
