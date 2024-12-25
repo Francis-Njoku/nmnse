@@ -15,11 +15,13 @@ class Company(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, null=True, unique=True)
     sector = models.CharField(max_length=255)
+    ticker = models.CharField(max_length=255, null=True)
     sub_sector = models.CharField(max_length=255, null=True, blank=True)
     upload_date = models.DateField(null=True)
     status = models.CharField(choices=STATUS_OPTIONS, max_length=255, default="not started")
     uploaded_by = models.ForeignKey(to=User, on_delete=models.CASCADE, null=True, related_name='uploaded_by')
     year_of_incorporation = models.IntegerField(null=True)
+    eop = models.DateField(null=True, blank=True)
     remark = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -34,12 +36,12 @@ class Company(models.Model):
 
 class FinancialData(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="financial_data")
-    revenue = models.JSONField()  # Storing revenue by year in a JSON format
-    pbt = models.JSONField()      # Storing PBT by year in a JSON format
-    pat = models.JSONField()      # Storing PAT by year in a JSON format
-    total_assets = models.JSONField()
-    cash_equivalent = models.JSONField()
-    equity = models.JSONField()
+    revenue = models.JSONField(null=True)  # Storing revenue by year in a JSON format
+    pbt = models.JSONField(null=True)      # Storing PBT by year in a JSON format
+    pat = models.JSONField(null=True)      # Storing PAT by year in a JSON format
+    total_assets = models.JSONField(null=True)
+    cash_equivalent = models.JSONField(null=True)
+    equity = models.JSONField(null=True)
     fiscal_year_end = models.JSONField()
     
     def __str__(self):

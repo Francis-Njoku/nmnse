@@ -20,6 +20,6 @@ class CompanySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Company
-        fields = ['id', 'name', 'sectors', 'sub_sector', 'year_of_incorporation', 'remark', 'financial_data']
+        fields = ['id', 'name', 'ticker', 'eop', 'sector', 'sub_sector', 'year_of_incorporation', 'remark', 'financial_data']
 
 
